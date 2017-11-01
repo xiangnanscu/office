@@ -21,8 +21,9 @@ namespace ConsoleApp1
         static string qianfadan;
         static HashSet<string> fileTypes = new HashSet<string>() { ".doc", ".docx", ".xls", ".xlsx" };
         static string patternChaosong = @"^\s*抄送[:：]([^:：\n\r。.]+)[。.]?\s*";
+        static string patternChun = @"\s*存[:：]([^:：\n\r。.]+)[。.]?";
         static string patternZhuSong = @"^\s*([^:：\s]+)[:：]\s*$";
-        static string patternWenHao = @"^\s*(?<代字>\w+)〔(?<年份>\d{4})〕(?<序号>\d*)号\s*$";
+        static string patternWenHao = @"^\s*(?<代字>\w+)〔(?<年份>\d{4})〕(?<序号>[\d ]*)号\s*";
         static string patternDate = @"^\s*(\d+年\d+月\d+日)\s*$";
 
         static Dictionary<string, string> MakeHolder()
@@ -35,6 +36,7 @@ namespace ConsoleApp1
                 {"主送","" },
                 {"成文日期","" },
                 {"抄送","" },
+                {"存","" },
             };
         }
 
@@ -53,7 +55,7 @@ namespace ConsoleApp1
                 if (t == ".doc" || t == ".docx") {
                     isDoc = true;
                 }
-                Print("找到签发单模板文件:", qianfadan);
+                Print("找到签发单模板文件:"+Path.GetFileName(qianfadan));
             }
         }
 
@@ -146,22 +148,27 @@ namespace ConsoleApp1
             {
                 var r = p.Range;
                 var m = Regex.Match(r.Text, patternChaosong);
-                if (m.Success && r.Font.Name == "仿宋_GB2312" && r.Font.Size < 16)
+                if (m.Success && r.Font.Name == "仿宋_GB2312")
                 {
-                    holder["抄送"] = m.Groups[1].Value;
+                    holder["抄送"] = "抄送：" + m.Groups[1].Value;
                     return;
                 }
             }
             Print("警告：没有找到抄送机关，请确保格式类似于“抄送：县委组织部”，字体为“仿宋_GB2312”，字号小于三号");
         }
-        static void HandleFile(Word.Document doc)
+        static void GetChun(Word.Document document)
         {
-            GetWenHao(doc);
-            GetBiaoTi(doc);
-            GetZhuSong(doc);
-            GetDate(doc);
-            GetChaoSong(doc);
-            doc.Close(false);
+
+            foreach (Word.Paragraph p in document.Paragraphs)
+            {
+                var r = p.Range;
+                var m = Regex.Match(r.Text, patternChun);
+                if (m.Success && r.Font.Name == "仿宋_GB2312")
+                {
+                    holder["存"] = "存：" + m.Groups[1].Value;
+                    return;
+                }
+            }
         }
         static void Work()
         {
@@ -169,18 +176,18 @@ namespace ConsoleApp1
             var docs = Directory.GetFiles(cd, "*.*", SearchOption.AllDirectories)
                 .Where(file => pat.IsMatch(file))
                 .ToList();
-            Print("docs.Count", docs.Count.ToString());
             if (docs.Count==0)
             {
                 Print("警告：没有找到word文件");
             }
             foreach (string docPath in docs)
             {
-                if (Path.GetFileNameWithoutExtension(docPath).Contains("签发单"))
+                var name = Path.GetFileNameWithoutExtension(docPath);
+                if (name.Contains("签发单"))
                 {
                     continue;
                 } 
-                Print("处理文件:" + docPath);
+                Print("处理文件:" + Path.GetFileName(docPath));
                 holder = MakeHolder();
                 word = new Word.Application();
                 try
@@ -191,14 +198,14 @@ namespace ConsoleApp1
                     GetZhuSong(doc);
                     GetDate(doc);
                     GetChaoSong(doc);
+                    GetChun(doc);
                     doc.Close(false);
                 }
                 finally
                 {
                     word.Quit();
                 }            
-                var name = $"签发单-{(holder["代字"])}-{(holder["年份"])}-{(holder["序号"])}号";
-                ProcessQianFaDan(name);
+                ProcessQianFaDan($"签发单-{name}");
             }
         }
         static void ProcessQianFaDan(string name)
