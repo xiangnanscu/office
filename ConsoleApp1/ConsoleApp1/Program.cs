@@ -98,7 +98,7 @@ namespace ConsoleApp1
                 if (r.Font.Name == "方正小标宋简体" && r.Font.Size == 22)
                 {
                     find = true;
-                    holder["标题"] = holder["标题"] + Regex.Replace(r.Text, "[\n\r ]", "");
+                    holder["标题"] = holder["标题"] + Regex.Replace(r.Text, "[\n\r ]|(江安县人力资源和社会保障局)", "");
                 }
             }
             if (!find)
