@@ -75,12 +75,12 @@ def make_doc(d, name):
     except Exception as e:
         return '打开模板文件失败：'+str(e) 
     try:
-        for i, r in enumerate(doc.StoryRanges):
-            for k, v in d.items():
-                r.Find.Text = '{%s}' % k
-                r.Find.Replacement.Text = v
-                r.Find.Execute(Replace=2)
-        doc.SaveAs(name)      
+        f = word.Selection.Find
+        for k, v in d.items():
+            f.Text = '{%s}' % k
+            f.Replacement.Text = v
+            f.Execute(Replace=2)
+        doc.SaveAs(name)       
     except Exception as e:
         return '生成文件失败：'+str(e) 
 
