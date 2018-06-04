@@ -49,13 +49,15 @@ namespace ConsoleApp1
             {
                 throw new Exception("没有找到签发单模板文件");
             }
-            else {
+            else
+            {
                 qianfadan = candidates[0];
                 var t = Path.GetExtension(qianfadan);
-                if (t == ".doc" || t == ".docx") {
+                if (t == ".doc" || t == ".docx")
+                {
                     isDoc = true;
                 }
-                Print("找到签发单模板文件:"+Path.GetFileName(qianfadan));
+                Print("找到签发单模板文件:" + Path.GetFileName(qianfadan));
             }
         }
 
@@ -74,7 +76,7 @@ namespace ConsoleApp1
         }
         static void GetWenHao(Word.Document document)
         {
-            
+
             foreach (Word.Paragraph p in document.Paragraphs)
             {
                 var r = p.Range;
@@ -115,7 +117,7 @@ namespace ConsoleApp1
                 var r = p.Range;
                 var m = Regex.Match(r.Text, patternZhuSong);
                 if (m.Success && r.Font.Name == "仿宋_GB2312" && r.Font.Size == 16
-                    && p.FirstLineIndent == 0 )
+                    && p.FirstLineIndent == 0)
                 {
                     holder["主送"] = m.Groups[1].Value;
                     return;
@@ -143,7 +145,7 @@ namespace ConsoleApp1
         }
         static void GetChaoSong(Word.Document document)
         {
-          
+
             foreach (Word.Paragraph p in document.Paragraphs)
             {
                 var r = p.Range;
@@ -176,15 +178,16 @@ namespace ConsoleApp1
             var docs = Directory.GetFiles(cd, "*.*", SearchOption.AllDirectories)
                 .Where(file => pat.IsMatch(file))
                 .ToList();
-            if (docs.Count==0)
+            if (docs.Count == 0)
             {
                 Print("警告：没有找到word文件");
             }
             foreach (string docPath in docs)
             {
                 var name = Path.GetFileNameWithoutExtension(docPath);
-                if (name.Contains("签发单"))
-                {
+                var modifyTime = File.GetLastWriteTime(docPath);
+                var diff = DateTime.Now - modifyTime;
+                if (diff.Minutes > 5) {
                     continue;
                 } 
                 Print("处理文件:" + Path.GetFileName(docPath));
@@ -204,13 +207,14 @@ namespace ConsoleApp1
                 finally
                 {
                     word.Quit();
-                }            
+                }
                 ProcessQianFaDan($"签发单-{name}");
             }
         }
         static void ProcessQianFaDan(string name)
         {
-            if (isDoc) {
+            if (isDoc)
+            {
                 word = new Word.Application();
                 try
                 {
@@ -229,15 +233,17 @@ namespace ConsoleApp1
                 {
                     word.Quit();
                 }
-            } else {
+            }
+            else
+            {
                 Excel.Application excel = new Excel.Application();
                 try
                 {
-                    excel.DisplayAlerts = false;   
+                    excel.DisplayAlerts = false;
                     Excel.Workbook book = excel.Workbooks.Open(qianfadan);
-                  
+
                     Excel.Range r = book.ActiveSheet.UsedRange;
-                    
+
                     foreach (KeyValuePair<string, string> kvp in holder)
                     {
                         r.Replace("{" + kvp.Key + "}", kvp.Value);
@@ -248,7 +254,7 @@ namespace ConsoleApp1
                 {
                     excel.DisplayAlerts = true;
                     excel.Quit();
-                    
+
                 }
             }
         }
