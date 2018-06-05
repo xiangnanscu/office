@@ -26,6 +26,7 @@ namespace ConsoleApp1
         static string patternZhuSong = @"^\s*([^:：\s]+)[:：]\s*$";
         static string patternWenHao = @"^\s*(?<代字>\w+)〔(?<年份>\d{4})〕(?<序号>[\d ]*)号\s*";
         static string patternDate = @"^\s*(\d+年\d+月\d+日)\s*$";
+        static string qianfadanPrefix = "签发单-";
 
         static Dictionary<string, string> MakeHolder()
         {
@@ -39,6 +40,17 @@ namespace ConsoleApp1
                 {"抄送","" },
                 {"存","" },
             };
+        }
+
+        private static void DeleteQianFaDan()
+        {
+            var candidates = Directory.GetFiles(cd, "*.*", SearchOption.AllDirectories)
+                .Where(file => Path.GetFileNameWithoutExtension(file).StartsWith(qianfadanPrefix) && fileTypes.Contains(Path.GetExtension(file)))
+                .ToList();
+            foreach (var file in candidates) {
+                File.Delete(file);
+            }
+            
         }
 
         private static void FindQianFaDan()
@@ -191,7 +203,7 @@ namespace ConsoleApp1
                 if (diff.Minutes > 5) {
                     continue;
                 }
-                Print($"处理文件{Path.GetFileName(docPath)}({modifyTime.ToString()})");
+                Print($"处理文件{Path.GetFileName(docPath)}({modifyTime.ToString()} {DateTime.Now.ToString()} {diff.Minutes.ToString()})");
                 holder = MakeHolder();
                 word = new Word.Application();
                 try
@@ -209,7 +221,7 @@ namespace ConsoleApp1
                 {
                     word.Quit();
                 }
-                ProcessQianFaDan($"签发单-{name}");
+                ProcessQianFaDan($"{qianfadanPrefix}{name}");
             }
         }
         static void ProcessQianFaDan(string name)
@@ -281,6 +293,7 @@ namespace ConsoleApp1
             try
             {
                 Print("------高大上的签发单生成程序开始^_^------");
+                DeleteQianFaDan();
                 FindQianFaDan();
                 Work();
             }
