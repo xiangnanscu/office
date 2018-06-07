@@ -20,6 +20,20 @@ function sameObject(a, b) {
   return true
 }
 
+var numberMap = ['零', ...'一二三四五六七八九'.split('')]
+
+function toChineseNumber(n) {
+    if (n > 999) {
+        return n
+    }
+    var bai = Math.floor(n/100%10)
+    bai = bai ? numberMap[bai] + '百' : ''
+    var shi = Math.floor(n/10%10)
+    shi = shi ? numberMap[shi] + '十' : ''
+    var ge = numberMap[Math.floor(n%10)]
+    return `${bai}${shi}${ge}`
+}
+
 function getSheets(fn) {
     var workbook = xlsx.readFile(fn, {
       type: 'binary'
@@ -145,7 +159,7 @@ class 岗位聘任 extends Base {
         if (rows.length==2) {
             titleNames = `${rows[0]['姓名']}${rows[1]['姓名']}二名`
         } else {
-            titleNames = `${first['姓名']}等${rows.length}名`
+            titleNames = `${first['姓名']}等${toChineseNumber(rows.length)}名`
         }
         return {
             ...first, 
@@ -178,7 +192,10 @@ class 招用 extends Base {
         if (rows.length==2) {
             titleNames = `${rows[0]['姓名']}${rows[1]['姓名']}二名`
         } else {
-            titleNames = `${first['姓名']}等${rows.length}名`
+            titleNames = `${first['姓名']}等${toChineseNumber(rows.length)}名`
+        }
+        if (!first['下属单位']) {
+            first['下属单位'] = ''
         }
         return {
             ...first, 
@@ -234,7 +251,7 @@ try {
     });
     xlsx.writeFile(workbook, './data.last.xlsx')
 
-    inputExit('按任意键结束')
+    // inputExit('按任意键结束')
 } catch (error) {
-    inputExit('发生错误：'+error)
+    // inputExit('发生错误：'+error)
 }
