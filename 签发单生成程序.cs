@@ -199,11 +199,10 @@ namespace ConsoleApp1
             {
                 var name = Path.GetFileNameWithoutExtension(docPath);
                 var modifyTime = File.GetLastWriteTime(docPath);
-                var diff = DateTime.Now - modifyTime;
-                if (diff.Minutes > 5) {
+                if (DateTime.Now > modifyTime.AddMinutes(5)) {
                     continue;
                 }
-                Print($"处理文件{Path.GetFileName(docPath)}({modifyTime.ToString()} {DateTime.Now.ToString()} {diff.Minutes.ToString()})");
+                Print($"处理文件:{Path.GetFileName(docPath)}");
                 holder = MakeHolder();
                 word = new Word.Application();
                 try
