@@ -55,7 +55,7 @@ function hasSameRow(r, rows) {
 }
 
 function template(templateName, outputName, data) {
-    console.log(data)
+  console.log(data)
   var zip = new JSZip(fs.readFileSync(templateName, 'binary'));
   var doc = new Docxtemplater();
   doc.loadZip(zip);
@@ -78,6 +78,10 @@ function template(templateName, outputName, data) {
   }
   var buf = doc.getZip().generate({type: 'nodebuffer'});
   // buf is a nodejs buffer, you can either write it to a file or do anything else with it.
+  var dir = outputName.split(/[/\\]/).slice(0, -1).join('/')
+  if (!fs.existsSync(dir)){
+    fs.mkdirSync(dir);
+  }
   fs.writeFileSync(outputName, buf);
 }
 
@@ -88,6 +92,9 @@ function getValue(list, key, Factory) {
         list.set(key, value)
     }
     return value
+}
+function sameDate(d1, d2) {
+    return d1 == d2
 }
 
 class Base {
@@ -110,7 +117,7 @@ class Base {
         return `${this.name}/${this.data['文号年份']}-${this.data['文号']}-`
     }
     getFileName() {
-
+        return `关于${this.data['姓名']}同志`
     }
     getTemplateName() {
         let suffix = this.data.S ? 'S' : ''
@@ -118,7 +125,7 @@ class Base {
     }
     exec() {
         this.cleanData()
-        let savePath = this.getFileNamePrefix() + this.getFileName()
+        let savePath = this.getFileNamePrefix() + this.getFileName() + '.docx'
         if (fs.existsSync(savePath)) {
             return console.log('文件存在，制作失败：'+savePath)
         }
@@ -134,7 +141,42 @@ class 辞聘 extends Base {
         super.cleanData()
     }
     getFileName() {
-        return `关于${this.data['姓名']}同志辞聘备案的函.docx`
+        return `关于${this.data['姓名']}同志辞聘备案的函`
+    }
+}
+class 调入第二步 extends Base {
+    cleanData() {
+        super.cleanData()
+    }
+    getFileName() {
+        return `商调函第二步-${this.data['姓名']}`
+    }
+}
+class 同意调出函 extends Base {
+    cleanData() {
+        super.cleanData()
+    }
+    getFileName() {
+        return `同意调出函-${this.data['姓名']}`
+    }
+}
+class 确认资格 extends Base {
+    cleanData() {
+        super.cleanData()
+    }
+    getFileName() {
+        return `关于确认${this.data['姓名']}同志${this.data['资格名称']}任职资格的通知`
+    }
+}
+class 调动 extends Base {
+    cleanData() {
+        if (!this.data['调入单位']) {
+            this.data['调入单位'] = '你单位'
+        }
+        super.cleanData()
+    }
+    getFileName() {
+        return `关于${this.data['姓名']}同志工作调动的通知`
     }
 }
 class 岗位聘任 extends Base {
@@ -172,9 +214,14 @@ class 岗位聘任 extends Base {
         super.cleanData()
         let data = this.data
         data['任职时间'] = data['任职时间'] || data['成文日期']
+        if (sameDate(data['任职时间'], data['成文日期'])) {
+            data['任职时间信息'] = ''
+        } else {
+            data['任职时间信息'] = `，时间从${data['任职时间']}起算`
+        }
     }
     getFileName() {
-        return `关于${this.data['姓名']}同志岗位聘任备案的函.docx`
+        return `关于${this.data['姓名']}同志岗位聘任备案的函`
     }
 }
 class 招用 extends Base {
@@ -182,7 +229,7 @@ class 招用 extends Base {
         let first = rows[0]
         let items = new Map()
         for (let data of rows) {
-            let e = getValue(items, data['下属单位'], Array)
+            let e = getValue(items, data['下属单位'] || '', Array)
             e.push(data['姓名'])
         }
         let body = [...items].map(([subName, names])=>{
@@ -208,7 +255,7 @@ class 招用 extends Base {
         super.cleanData()
     }
     getFileName() {
-        return `关于确认招用${this.data['姓名']}同志为劳动合同制工作人员的函.docx`
+        return `关于确认招用${this.data['姓名']}同志为劳动合同制工作人员的函`
     }
 }
 
@@ -240,7 +287,7 @@ try {
         let l = last[shtName]
         let rows = l ? c.filter(r=>!hasSameRow(r, l)) : c.slice()
         for (let [sendto, items] of mergeRows(rows, '抬头')) {
-            let cls = eval(shtName)
+            let cls = eval(shtName) || Base
             let data = items.length == 1 ? items[0] : cls.mergeData(items)
             new cls(data, shtName).exec()
         }
